@@ -118,13 +118,16 @@ def test():
         print('类别 %d 的 FN: %d' % (i + 1, class_FN[i]))
         print()
 
-    APs = []
+    precisions = [0] * 10 # 存储每个类别的精度
+    recalls = [0] * 10 # 存储每个类别的召回率
+    APs = [0] * 10
+    f1_scores = [0] * 10 # 存储每个类别的F1值
     for i in range(10):
         labelstr = []
         predictedsc = []
         with torch.no_grad():
             for data in test_loader:
-                images, true_labels = data
+                images, labels = data
                 outputs = model(images)
                 _, predicted = torch.max(outputs.data, dim=1)
                 for j in range(len(labels)):
@@ -137,10 +140,19 @@ def test():
                     else:
                         predictedsc.append(0)
         precision, recall, _ = precision_recall_curve(labelstr, predictedsc, pos_label=1)
-        print(precision)
-        AP = average_precision_score(labelstr, predictedsc)
+
+        precisions[i]=precision[1]
+        recalls[i]=recall[1]
+
+        f1_scores[i] = 2 * recalls[i] * precisions[i] / (recalls[i] + precisions[i])
+
+        AP = average_precision_score(labelstr, predictedsc)     # 慎用AP,其中存在误差(threshold=0)
+
         APs.append(AP)
+        print('类别 %d 的F1值: %.3f' % (i + 1, f1_scores[i]))
         print('类别 %d 的AP值: %.3f' % (i + 1, AP))
+
+    print('所有类别的平均F1值: %.3f' % np.mean(f1_scores))
     print('所有类别的平均AP值: %.3f' % np.mean(APs))
 
 if __name__ == '__main__':
