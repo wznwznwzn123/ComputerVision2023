@@ -18,9 +18,9 @@ transform = transforms.Compose([
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),  # 归一化
     ])
 
-train_dataset = torchvision.datasets.CIFAR10(root='D:/桌面/计算机视觉/image identification/cifar10', train=True, download=True, transform=transform)
+train_dataset = torchvision.datasets.CIFAR10(root='./cifar10', train=True, download=True, transform=transform)
 
-test_dataset = torchvision.datasets.CIFAR10(root='D:/桌面/计算机视觉/image identification/cifar10', train=False, download=True, transform=transform)
+test_dataset = torchvision.datasets.CIFAR10(root='./cifar10', train=False, download=True, transform=transform)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -42,7 +42,10 @@ APs = [0] * 10
 rec = [0] * 10
 prec = [0] * 10
 f1_scores = [0] * 10
-
+s=SVC(kernel='linear', C=1, gamma='auto')
+s.fit(x_train,y_train)
+y_pred = s.predict(x_test)
+acc = accuracy_score(y_test, y_pred)
 # 创建10个SVM分类器
 for i in range(10):
     svm = SVC(kernel='linear', C=1, gamma='auto')
@@ -63,14 +66,15 @@ for i in range(10):
 
     ## 准确率
     y_pred_i = svm.predict(x_test)
+    """
     acc1 = accuracy_score(y_test_i, y_pred_i)
     print('类别', classes[i], '的准确率为:', acc1)
+    """
     
-    ## 计算TP，FP，FN，TN
+    ## 计算TP，FP，FN
     TP = 0
     FP = 0
     FN = 0
-    TN = 0
     for j in range(len(y_test_i)):
         if y_test_i[j] == 1 and y_pred_i[j] == 1:
             TP += 1
@@ -78,12 +82,11 @@ for i in range(10):
             FP += 1
         elif y_test_i[j] == 1 and y_pred_i[j] == 0:
             FN += 1
-        elif y_test_i[j] == 0 and y_pred_i[j] == 0:
-            TN += 1
-    print('类别', i + 1, '的TP为:', TP)
-    print('类别', i + 1, '的FP为:', FP)
-    print('类别', i + 1, '的FN为:', FN)
-    print('类别', i + 1, '的TN为:', TN)
+    print('类别', classes[i], '的TP为:', TP)
+    print('类别', classes[i], '的FP为:', FP)
+    print('类别', classes[i], '的FN为:', FN)
+    print('类别', classes[i], '的召回率为:%.3f' % (TP/(TP+FN)))
+    print('类别', classes[i], '的精度为:%.3f' % (TP/(TP+FP)))
 
     class_TP[i] = TP
     class_FP[i] = FP
@@ -92,16 +95,17 @@ for i in range(10):
     ## 召回率、精确率
     rec[i] = class_TP[i] / (class_TP[i] + class_FN[i])
     prec[i] = class_TP[i] / (class_TP[i] + class_FP[i])
-    print('类别', classes[i], '的召回率为:', rec[i])
-    print('类别', classes[i], '的精确率为:', prec[i])
+
     ## F1
     f1_scores[i] = 2 * rec[i] * prec[i] / (rec[i] + prec[i])
 
     ## AP
     precision, recall, thresholds = precision_recall_curve(y_test_i, y_score_i)
     AP = average_precision_score(y_test_i, y_score_i)
-    APs.append(AP)
+    APs[i] = AP
 
+    print('类别', classes[i], '的F1为:', f1_scores[i])
+    print('类别', classes[i], '的AP为:', AP)
     ## PR曲线   
     plt.clf()
     plt.plot(precision, recall, label='Precision-Recall curve')
@@ -131,6 +135,16 @@ for i in range(10):
     
 # 所有类别的mAP
 mAP = np.mean(APs)
-
+rec_total=0
+prec_total=0
 # 最后可能需要把所有类别的各种指标求平均，这里未求
+for i in range(10):
+    rec_total+=rec[i]
+    prec_total+=prec[i]
+mrec=rec_total/10
+mprec=prec_total/10
+print('SVM的预测准确率为:',acc)
+print('SVM的平均召回率为:',mrec)
+print('SVM的平均精度为:',mprec)
+print('SVM的mAP为:',mAP)
 

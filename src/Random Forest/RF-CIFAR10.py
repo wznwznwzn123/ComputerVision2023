@@ -30,8 +30,8 @@ y_train = train_dataset.targets
 x_test = test_dataset.data.reshape(10000, 32*32*3)
 y_test = test_dataset.targets
 
-x_train = x_train[:8000]
-y_train = y_train[:8000]
+x_train = x_train[:20000]
+y_train = y_train[:20000]
 x_test = x_test[:5000]
 y_test = y_test[:5000]
 
@@ -43,7 +43,8 @@ APs = [0] * 10
 rec = [0] * 10
 prec = [0] * 10
 f1_scores = [0] * 10
-
+correct = 0
+total = 0
 # 创建10个SVM分类器
 for i in range(10):
     clf_rf = RandomForestClassifier(n_jobs=-1)
@@ -59,14 +60,12 @@ for i in range(10):
     # 预测测试集
     y_score_i = clf_rf.predict_proba(x_test)
     y_score_i = y_score_i[:, 1]
-    print(y_score_i[:10])
     # 指标  其中，acc1、acc、rec、prec、TP、FP、FN不受阈值及score影响
 
     ## 准确率
     y_pred_i = clf_rf.predict(x_test)
     acc1 = accuracy_score(y_test_i, y_pred_i)
     print('类别', classes[i], '的准确率为:', acc1)
-    print(y_pred_i[:10])
     
     ## 计算TP，FP，FN
     TP = 0
@@ -76,12 +75,18 @@ for i in range(10):
     for j in range(len(y_test_i)):
         if y_test_i[j] == 1 and y_pred_i[j] == 1:
             TP += 1
+            correct += 1
+            total += 1
         elif y_test_i[j] == 0 and y_pred_i[j] == 1:
             FP += 1
+            total += 1
         elif y_test_i[j] == 1 and y_pred_i[j] == 0:
             FN += 1
+            correct += 1
+            total += 1
         elif y_test_i[j] == 0 and y_pred_i[j] == 0:
             TN += 1
+            total += 1
     print('类别', classes[i], '的TP为:', TP)
     print('类别', classes[i], '的FP为:', FP)
     print('类别', classes[i], '的FN为:', FN)
@@ -102,7 +107,9 @@ for i in range(10):
     ## AP
     precision, recall, thresholds = precision_recall_curve(y_test_i, y_score_i)
     AP = average_precision_score(y_test_i, y_score_i)
-    APs.append(AP)
+    APs[i] = AP
+    print('类别', classes[i], '的F1为:', f1_scores[i])
+    print('类别', classes[i], '的AP为:', AP)
 
     ## PR曲线   
     plt.clf()
@@ -132,7 +139,11 @@ for i in range(10):
 
     
 # 所有类别的mAP
-mAP = np.mean(APs)
+print('RF的测试准确率: %.3f' % (correct / total))
+print('所有类别的平均召回率: %.3f' % np.mean(rec))
+print('所有类别的平均精度: %.3f' % np.mean(prec))
+print('所有类别的平均F1值: %.3f' % np.mean(f1_scores))
+print('所有类别的平均AP值: %.3f' % np.mean(APs))
 
 # 最后可能需要把所有类别的各种指标求平均，这里未求
 

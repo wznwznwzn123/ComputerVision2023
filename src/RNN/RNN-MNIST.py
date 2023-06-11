@@ -12,7 +12,7 @@ from sklearn.metrics import auc
 import os
 import matplotlib.pyplot as plt
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class RNN(nn.Module):
     def __init__(self):
@@ -32,7 +32,7 @@ class RNN(nn.Module):
         # 这边将最右上角的输出的128维度映射到10的分类上面去
         return tmp
  
- 
+#model = torch.load('RNNMNISTmodel')
 model = RNN()
 model = model.to(device)
 print(model)
@@ -53,11 +53,9 @@ def Get_ACC():
     total_num = len(dataset_test)
     for item in test_loader:
         batch_imgs,batch_labels = item
-        print(batch_imgs.shape)
         batch_imgs = batch_imgs.squeeze(1)
         batch_imgs = Variable(batch_imgs)
         batch_imgs = batch_imgs.to(device)
-        
         batch_labels = batch_labels.to(device)
         out = model(batch_imgs)
         _,pred = torch.max(out.data,1)
@@ -75,7 +73,7 @@ loss_f = nn.CrossEntropyLoss()
  
 Get_ACC()
 # 开始训练
-for epoch in range(3):
+for epoch in range(2):
     print('epoch:{}'.format(epoch))
     cnt = 0
     for item in train_loader:
@@ -104,10 +102,22 @@ class_total = list(0. for i in range(10))
 class_TP = list(0. for i in range(10))
 class_FP = list(0. for i in range(10))
 class_FN = list(0. for i in range(10))
+correct = 0
+total = 0
+with torch.no_grad():
+        for data in test_loader:
+            images, labels = data
+            images, labels = images.to(device), labels.to(device)
+            images = images.squeeze(1)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, dim=1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
 
 with torch.no_grad():
         for data in test_loader:
             images, labels = data
+            images, labels = images.to(device), labels.to(device)
             images = images.squeeze(1)
             images = Variable(images).to(device)
             outputs = model(images)
@@ -151,10 +161,11 @@ for i in range(10):
     with torch.no_grad():
         for data in test_loader:
             images, labels = data
+            images, labels = images.to(device), labels.to(device)
             images = images.squeeze(1)
             images = Variable(images).to(device)
             outputs = model(images)
-            probs = torch.nn.functional.softmax(outputs, dim=1) 
+            probs = torch.nn.functional.softmax(outputs, dim=1).cpu()
             for j in range(len(labels)):
                 if labels[j] == i:
                     labelstr.append(1)
@@ -195,5 +206,10 @@ for i in range(10):
     APs[i] = AP
     print('类别 %d 的AP值: %.3f' % (i + 1, AP))
 
+print('RNN的测试准确率: %.3f' % (correct / total))
+print('所有类别的平均召回率: %.3f' % np.mean(rec))
+print('所有类别的平均精度: %.3f' % np.mean(prec))
 print('所有类别的平均F1值: %.3f' % np.mean(f1_scores))
 print('所有类别的平均AP值: %.3f' % np.mean(APs))
+
+torch.save(model,'RNNMNISTmodel')

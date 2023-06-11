@@ -35,8 +35,8 @@ y_train = train_dataset.targets
 # 划分测试集和训练集
 x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
 
-x_train = x_train[:5000]
-y_train = y_train[:5000]
+x_train = x_train[:2000]
+y_train = y_train[:2000]
 x_test = x_test[:1000]
 y_test = y_test[:1000]
 
@@ -49,6 +49,10 @@ rec = [0] * 10
 prec = [0] * 10
 f1_scores = [0] * 10
 
+s=SVC(kernel='linear', C=1, gamma='auto')
+s.fit(x_train,y_train)
+y_pred = s.predict(x_test)
+acc = accuracy_score(y_test, y_pred)
 # 创建10个SVM分类器
 for i in range(10):
     svm = SVC(kernel='linear', C=1, gamma='auto')
@@ -71,8 +75,10 @@ for i in range(10):
 
     ## 准确率
     y_pred_i = svm.predict(x_test)
+    """
     acc1 = accuracy_score(y_test_i, y_pred_i)
     print('类别', i + 1, '的准确率为:', acc1)
+    """
     
     ## 计算TP，FP，FN
     TP = 0
@@ -88,6 +94,8 @@ for i in range(10):
     print('类别', i + 1, '的TP为:', TP)
     print('类别', i + 1, '的FP为:', FP)
     print('类别', i + 1, '的FN为:', FN)
+    print('类别', i + 1, '的召回率为:', TP/(TP+FN))
+    print('类别', i + 1, '的精度为:', TP/(TP+FP))
 
     class_TP[i] = TP
     class_FP[i] = FP
@@ -103,7 +111,9 @@ for i in range(10):
     ## AP
     precision, recall, thresholds = precision_recall_curve(y_test_i, y_score_i)
     AP = average_precision_score(y_test_i, y_score_i)
-    APs.append(AP)
+    APs[i] = AP
+    print('类别', i + 1, '的F1为:', f1_scores[i])
+    print('类别', i + 1, '的AP为:', AP)
 
     ## PR曲线   
     plt.clf()
@@ -134,6 +144,16 @@ for i in range(10):
     
 # 所有类别的mAP
 mAP = np.mean(APs)
-
+rec_total=0
+prec_total=0
 # 最后可能需要把所有类别的各种指标求平均，这里未求
+for i in range(10):
+    rec_total+=rec[i]
+    prec_total+=prec[i]
+mrec=rec_total/10
+mprec=prec_total/10
+print('SVM的预测准确率为:',acc)
+print('SVM的平均召回率为:',mrec)
+print('SVM的平均精度为:',mprec)
+print('SVM的mAP为:',mAP)
 
